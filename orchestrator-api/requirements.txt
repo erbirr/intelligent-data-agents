@@ -1,0 +1,32 @@
+# Web framework y servidor
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+
+# Drivers de base de datos
+asyncpg==0.29.0      # PostgreSQL async driver - más rápido que psycopg2
+neo4j==5.15.0        # Neo4j oficial driver con soporte async
+
+# Utilidades
+python-multipart==0.0.6  # Para manejo de formularios multipart si es necesario
+python-dotenv==1.0.0      # Para cargar variables de entorno desde .env
+
+# Logging y monitoreo
+structlog==23.2.0     # Logging estructurado para mejor observabilidad
+
+# Typing extensions para compatibilidad
+typing-extensions==4.8.0
+
+# Desarrollo y testing (opcional, pero útil para desarrollo local)
+pytest==7.4.3
+pytest-asyncio==0.21.1
+httpx==0.25.2         # Cliente HTTP async para testing
+
+# GCP - IA - LLM
+google-cloud-aiplatform>=1.38.0
+vertexai>=1.0.0
+
+
+# Dependencias adicionales para producción
+uvloop==0.19.0          # Optimización de asyncio para mejor rendimiento
+requests==2.31.0        # Cliente HTTP para healthcheck y testing

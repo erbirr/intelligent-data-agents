@@ -1,0 +1,26 @@
+{
+    "Servers": {
+        "1": {
+            "Name": "IDA PostgreSQL Local",
+            "Group": "Desarrollo",
+            "Host": "ida-postgres",
+            "Port": 5432,
+            "MaintenanceDB": "multiagentes",
+            "Username": "tecnoandina",
+            "Password": "tecnoandina",
+            "SSLMode": "prefer",
+            "Comment": "Base de datos principal del sistema Multi-Agente"
+        },
+        "2": {
+            "Name": "IDA PostgreSQL Localhost",
+            "Group": "Desarrollo",
+            "Host": "localhost",
+            "Port": 5432,
+            "MaintenanceDB": "multiagentes",
+            "Username": "tecnoandina",
+            "Password": "tecnoandina",
+            "SSLMode": "prefer",
+            "Comment": "Conexión localhost para desarrollo"
+        }
+    }
+}

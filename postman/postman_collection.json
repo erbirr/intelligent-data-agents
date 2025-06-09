@@ -1,0 +1,825 @@
+{
+	"info": {
+		"_postman_id": "ida-microservice-collection",
+		"name": "IDA Microservices - Intelligent Data Agents",
+		"description": "Colección completa para probar el sistema de agentes IDA con Neo4j, PostgreSQL y Gemini LLM.\n\n**Características:**\n- Orquestador inteligente con Gemini LLM\n- Agentes especializados para Neo4j y PostgreSQL\n- Configuración dinámica de conexiones\n- Consultas en lenguaje natural\n\n**Configuración:**\n1. Ajustar variables de entorno en la colección\n2. Probar endpoints de salud primero\n3. Configurar conexiones de bases de datos\n4. Ejecutar consultas inteligentes",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "ida-system"
+	},
+	"item": [
+		{
+			"name": "🏥 Sistema y Salud",
+			"item": [
+				{
+					"name": "Health Check",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has healthy status\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.status).to.eql(\"healthy\");",
+									"});",
+									"",
+									"pm.test(\"Service name is correct\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.service).to.eql(\"ida-microservice\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/health",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"health"
+							]
+						},
+						"description": "Endpoint de verificación de salud del sistema. Verifica que el servicio esté funcionando y muestra el estado de los agentes."
+					},
+					"response": []
+				},
+				{
+					"name": "System Info",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has service info\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.service).to.exist;",
+									"    pm.expect(jsonData.version).to.exist;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/system/info",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"system",
+								"info"
+							]
+						},
+						"description": "Información detallada del sistema, configuración y endpoints disponibles."
+					},
+					"response": []
+				},
+				{
+					"name": "Root Endpoint",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								""
+							]
+						},
+						"description": "Endpoint raíz que proporciona información básica y enlaces a documentación."
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints para verificar el estado y configuración del sistema."
+		},
+		{
+			"name": "🤖 Estado de Agentes",
+			"item": [
+				{
+					"name": "Agents Status",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has agents status\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('neo4j');",
+									"    pm.expect(jsonData).to.have.property('postgres');",
+									"    pm.expect(jsonData).to.have.property('orchestrator');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/agents/status",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"agents",
+								"status"
+							]
+						},
+						"description": "Estado actual de todos los agentes del sistema (Neo4j, PostgreSQL, Orquestador)."
+					},
+					"response": []
+				},
+				{
+					"name": "Agents Capabilities",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has capabilities\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('object');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/agents/capabilities",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"agents",
+								"capabilities"
+							]
+						},
+						"description": "Capacidades disponibles de cada agente del sistema."
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints para monitorear el estado y capacidades de los agentes."
+		},
+		{
+			"name": "🔌 Test de Conexiones",
+			"item": [
+				{
+					"name": "Test Neo4j Connection",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has success field\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('success');",
+									"    pm.expect(jsonData).to.have.property('message');",
+									"});",
+									"",
+									"// Guardar resultado en variable de entorno",
+									"var jsonData = pm.response.json();",
+									"pm.environment.set(\"neo4j_connection_success\", jsonData.success);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"uri\": \"{{neo4j_uri}}\",\n    \"user\": \"{{neo4j_user}}\",\n    \"password\": \"{{neo4j_password}}\",\n    \"database\": \"{{neo4j_database}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/connections/neo4j/test",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"connections",
+								"neo4j",
+								"test"
+							]
+						},
+						"description": "Prueba la conexión a Neo4j con los parámetros especificados."
+					},
+					"response": []
+				},
+				{
+					"name": "Test PostgreSQL Connection",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has success field\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('success');",
+									"    pm.expect(jsonData).to.have.property('message');",
+									"});",
+									"",
+									"// Guardar resultado en variable de entorno",
+									"var jsonData = pm.response.json();",
+									"pm.environment.set(\"postgres_connection_success\", jsonData.success);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"host\": \"{{postgres_host}}\",\n    \"port\": {{postgres_port}},\n    \"database\": \"{{postgres_database}}\",\n    \"user\": \"{{postgres_user}}\",\n    \"password\": \"{{postgres_password}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/connections/postgres/test",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"connections",
+								"postgres",
+								"test"
+							]
+						},
+						"description": "Prueba la conexión a PostgreSQL con los parámetros especificados."
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints para probar conexiones a bases de datos antes de usarlas."
+		},
+		{
+			"name": "🧠 Consultas Inteligentes",
+			"item": [
+				{
+					"name": "Consulta Simple",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has result and metadata\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('result');",
+									"    pm.expect(jsonData).to.have.property('metadata');",
+									"});",
+									"",
+									"pm.test(\"Execution time is present\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('execution_time');",
+									"    pm.expect(jsonData.execution_time).to.be.a('number');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"query\": \"¿Cuál es el estado de la conexión?\",\n    \"context\": {\n        \"type\": \"health_check\",\n        \"priority\": \"high\"\n    }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/query",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"query"
+							]
+						},
+						"description": "Consulta simple para probar el sistema básico."
+					},
+					"response": []
+				},
+				{
+					"name": "Consulta Neo4j - Relaciones",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response indicates Neo4j was used\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    // El metadata debería indicar que se usó Neo4j",
+									"    pm.expect(JSON.stringify(jsonData.metadata)).to.include('neo4j');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"query\": \"Muéstrame las relaciones entre usuarios y productos en el grafo\",\n    \"context\": {\n        \"type\": \"graph_analysis\",\n        \"focus\": \"relationships\"\n    }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/query",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"query"
+							]
+						},
+						"description": "Consulta que debería ser dirigida al agente Neo4j por contener palabras clave de grafos."
+					},
+					"response": []
+				},
+				{
+					"name": "Consulta PostgreSQL - Agregaciones",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response indicates PostgreSQL was used\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    // El metadata debería indicar que se usó PostgreSQL",
+									"    pm.expect(JSON.stringify(jsonData.metadata)).to.include('postgres');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"query\": \"Dame el conteo total de registros y el promedio de ventas por mes\",\n    \"context\": {\n        \"type\": \"analytical_query\",\n        \"focus\": \"aggregations\"\n    }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/query",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"query"
+							]
+						},
+						"description": "Consulta que debería ser dirigida al agente PostgreSQL por contener palabras clave de agregaciones."
+					},
+					"response": []
+				},
+				{
+					"name": "Consulta Híbrida - Multi-agente",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response indicates multiple agents were used\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    var metadataStr = JSON.stringify(jsonData.metadata);",
+									"    // Debería haber evidencia de uso de múltiples agentes",
+									"    pm.expect(metadataStr).to.satisfy(function(str) {",
+									"        return str.includes('neo4j') || str.includes('postgres') || str.includes('hybrid');",
+									"    });",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"query\": \"Combina los datos de relaciones del grafo con las estadísticas de la tabla de ventas\",\n    \"context\": {\n        \"type\": \"hybrid_analysis\",\n        \"sources\": [\"neo4j\", \"postgresql\"],\n        \"merge_strategy\": \"intelligent\"\n    }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/query",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"query"
+							]
+						},
+						"description": "Consulta híbrida que requiere datos de ambas bases de datos."
+					},
+					"response": []
+				},
+				{
+					"name": "Consulta con Configuración Dinámica",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Custom configuration was used\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('metadata');",
+									"    // Debería haber alguna indicación del uso de configuración personalizada",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"query\": \"Consulta los usuarios activos\",\n    \"context\": {\n        \"type\": \"dynamic_config_test\"\n    },\n    \"neo4j_config\": {\n        \"uri\": \"{{alt_neo4j_uri}}\",\n        \"user\": \"{{alt_neo4j_user}}\",\n        \"password\": \"{{alt_neo4j_password}}\"\n    },\n    \"postgres_config\": {\n        \"host\": \"{{alt_postgres_host}}\",\n        \"port\": {{alt_postgres_port}},\n        \"database\": \"{{alt_postgres_database}}\",\n        \"user\": \"{{alt_postgres_user}}\",\n        \"password\": \"{{alt_postgres_password}}\"\n    }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/query",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"query"
+							]
+						},
+						"description": "Consulta que usa configuraciones de conexión personalizadas para esta consulta específica."
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints para consultas en lenguaje natural que son procesadas por el orquestador inteligente."
+		},
+		{
+			"name": "📊 Consultas de Ejemplo",
+			"item": [
+				{
+					"name": "Análisis de Productos Relacionados",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"query\": \"¿Qué productos están más conectados entre sí y cuáles son las rutas de recomendación más cortas?\",\n    \"context\": {\n        \"type\": \"product_analysis\",\n        \"business_goal\": \"recommendation_system\"\n    }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/query",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"query"
+							]
+						},
+						"description": "Ejemplo de análisis de relaciones de productos usando Neo4j."
+					},
+					"response": []
+				},
+				{
+					"name": "Métricas de Ventas Mensuales",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"query\": \"Muéstrame las métricas de ventas de los últimos 6 meses, agrupadas por mes y categoría de producto\",\n    \"context\": {\n        \"type\": \"sales_analysis\",\n        \"time_period\": \"6_months\",\n        \"grouping\": [\"month\", \"category\"]\n    }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/query",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"query"
+							]
+						},
+						"description": "Ejemplo de análisis de métricas usando PostgreSQL."
+					},
+					"response": []
+				},
+				{
+					"name": "Análisis de Comportamiento de Usuarios",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"query\": \"Combina los patrones de navegación de usuarios del grafo con sus compras históricas para identificar segmentos de clientes\",\n    \"context\": {\n        \"type\": \"customer_segmentation\",\n        \"analysis_depth\": \"comprehensive\",\n        \"merge_data_sources\": true\n    }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/query",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"query"
+							]
+						},
+						"description": "Ejemplo de análisis híbrido que combina datos de ambas bases de datos."
+					},
+					"response": []
+				},
+				{
+					"name": "Detección de Anomalías en Transacciones",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"query\": \"Encuentra transacciones inusuales basándote en patrones de conexión anómalos y valores estadísticamente atípicos\",\n    \"context\": {\n        \"type\": \"anomaly_detection\",\n        \"sensitivity\": \"high\",\n        \"algorithms\": [\"graph_analysis\", \"statistical_outliers\"]\n    }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/query",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"query"
+							]
+						},
+						"description": "Ejemplo de detección de anomalías usando ambos sistemas."
+					},
+					"response": []
+				}
+			],
+			"description": "Ejemplos de consultas reales que demuestran las capacidades del sistema."
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Script que se ejecuta antes de cada request",
+					"console.log('Ejecutando consulta a:', pm.request.url.toString());",
+					"",
+					"// Agregar timestamp a headers para tracking",
+					"pm.request.headers.add({",
+					"    key: 'X-Request-Timestamp',",
+					"    value: new Date().toISOString()",
+					"});",
+					"",
+					"// Agregar identificador único para cada request",
+					"pm.request.headers.add({",
+					"    key: 'X-Request-ID',",
+					"    value: pm.variables.replaceIn('{{$randomUUID}}')",
+					"});"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Script que se ejecuta después de cada response",
+					"",
+					"// Log básico de la respuesta",
+					"console.log('Response status:', pm.response.status);",
+					"console.log('Response time:', pm.response.responseTime + 'ms');",
+					"",
+					"// Verificaciones globales",
+					"pm.test('Response time is acceptable', function () {",
+					"    pm.expect(pm.response.responseTime).to.be.below(10000); // 10 segundos max",
+					"});",
+					"",
+					"pm.test('Response has JSON content-type', function () {",
+					"    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+					"});",
+					"",
+					"// Guardar métricas básicas en variables",
+					"pm.environment.set('last_response_time', pm.response.responseTime);",
+					"pm.environment.set('last_response_status', pm.response.status);"
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080",
+			"type": "string",
+			"description": "URL base de la API IDA. Cambiar a la URL de Cloud Run en producción."
+		},
+		{
+			"key": "neo4j_uri",
+			"value": "bolt://localhost:7687",
+			"type": "string",
+			"description": "URI de conexión a Neo4j"
+		},
+		{
+			"key": "neo4j_user",
+			"value": "neo4j",
+			"type": "string",
+			"description": "Usuario de Neo4j"
+		},
+		{
+			"key": "neo4j_password",
+			"value": "tecnoandina",
+			"type": "string",
+			"description": "Contraseña de Neo4j"
+		},
+		{
+			"key": "neo4j_database",
+			"value": "multiagentes",
+			"type": "string",
+			"description": "Base de datos de Neo4j"
+		},
+		{
+			"key": "postgres_host",
+			"value": "localhost",
+			"type": "string",
+			"description": "Host de PostgreSQL"
+		},
+		{
+			"key": "postgres_port",
+			"value": "5432",
+			"type": "string",
+			"description": "Puerto de PostgreSQL"
+		},
+		{
+			"key": "postgres_database",
+			"value": "multiagentes",
+			"type": "string",
+			"description": "Base de datos de PostgreSQL"
+		},
+		{
+			"key": "postgres_user",
+			"value": "tecnoandina",
+			"type": "string",
+			"description": "Usuario de PostgreSQL"
+		},
+		{
+			"key": "postgres_password",
+			"value": "tecnoandina",
+			"type": "string",
+			"description": "Contraseña de PostgreSQL"
+		},
+		{
+			"key": "alt_neo4j_uri",
+			"value": "bolt://ida-neo4j:7687",
+			"type": "string",
+			"description": "URI alternativa de Neo4j para pruebas de configuración dinámica"
+		},
+		{
+			"key": "alt_neo4j_user",
+			"value": "neo4j",
+			"type": "string",
+			"description": "Usuario alternativo de Neo4j"
+		},
+		{
+			"key": "alt_neo4j_password",
+			"value": "alt_password",
+			"type": "string",
+			"description": "Contraseña alternativa de Neo4j"
+		},
+		{
+			"key": "alt_postgres_host",
+			"value": "ida-postgres",
+			"type": "string",
+			"description": "Host alternativo de PostgreSQL"
+		},
+		{
+			"key": "alt_postgres_port",
+			"value": "5432",
+			"type": "string",
+			"description": "Puerto alternativo de PostgreSQL"
+		},
+		{
+			"key": "alt_postgres_database",
+			"value": "multiagentes",
+			"type": "string",
+			"description": "Base de datos alternativa de PostgreSQL"
+		},
+		{
+			"key": "alt_postgres_user",
+			"value": "tecnoandina",
+			"type": "string",
+			"description": "Usuario alternativo de PostgreSQL"
+		},
+		{
+			"key": "alt_postgres_password",
+			"value": "alt_password",
+			"type": "string",
+			"description": "Contraseña alternativa de PostgreSQL"
+		}
+	]
+}

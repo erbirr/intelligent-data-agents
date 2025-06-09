@@ -1,0 +1,132 @@
+# docker-compose.dev.yml - Versión para desarrollo con volúmenes
+version: '3.8'
+
+services:
+  # Microservicio IDA con volúmenes para desarrollo
+  ida-microservice:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - NEO4J_URI=bolt://ida-neo4j:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=tecnoandina
+      - POSTGRES_HOST=ida-postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=multiagentes
+      - POSTGRES_USER=tecnoandina
+      - POSTGRES_PASSWORD=tecnoandina
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/vertex-ai-credentials.json
+      - GOOGLE_CLOUD_PROJECT=prj-ia-tecnoandina
+      - GOOGLE_CLOUD_LOCATION=us-central1
+      - LLM_ENABLED=true
+      - ENV=development
+    volumes:
+      # 🔥 VOLÚMENES PARA DESARROLLO EN VIVO
+      - ./static:/app/static:ro          # Frontend en vivo
+      - ./main.py:/app/main.py:ro        # API principal en vivo
+      - ./agents:/app/agents:ro          # Agentes en vivo
+      - ./llm:/app/llm:ro               # LLM modules en vivo
+    depends_on:
+      ida-neo4j:
+        condition: service_healthy
+      ida-postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # Base de datos Neo4j
+  ida-neo4j:
+    image: neo4j:5.15-community
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      - NEO4J_AUTH=neo4j/tecnoandina
+      - NEO4J_PLUGINS=["apoc"]
+      - NEO4J_dbms_security_procedures_unrestricted=apoc.*
+      - NEO4J_dbms_security_procedures_allowlist=apoc.*
+    volumes:
+      - ida_neo4j_data:/data
+      - ida_neo4j_logs:/logs
+    healthcheck:
+      test: ["CMD", "cypher-shell", "-u", "neo4j", "-p", "tecnoandina", "RETURN 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Base de datos PostgreSQL
+  ida-postgres:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=multiagentes
+      - POSTGRES_USER=tecnoandina
+      - POSTGRES_PASSWORD=tecnoandina
+    volumes:
+      - ida_postgres_data:/var/lib/postgresql/data
+      - ./scripts/postgres:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tecnoandina -d multiagentes"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Redis para caché
+  ida-redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - ida_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # pgAdmin para administrar PostgreSQL
+  ida-pgadmin:
+    image: dpage/pgadmin4:latest
+    ports:
+      - "5050:80"
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@tecnoandina.cl
+      - PGADMIN_DEFAULT_PASSWORD=tecnoandina
+      - PGADMIN_CONFIG_SERVER_MODE=False
+    volumes:
+      - ida_pgadmin_data:/var/lib/pgadmin
+      - ./pgadmin-servers.json:/pgadmin4/servers.json
+    depends_on:
+      - ida-postgres
+    restart: unless-stopped
+
+  # Adminer para administrar bases de datos
+  ida-adminer:
+    image: adminer:latest
+    ports:
+      - "8082:8080"
+    environment:
+      - ADMINER_DEFAULT_SERVER=ida-postgres
+    depends_on:
+      - ida-postgres
+    restart: unless-stopped
+
+volumes:
+  ida_neo4j_data:
+  ida_neo4j_logs:
+  ida_postgres_data:
+  ida_redis_data:
+  ida_pgadmin_data:
+
+networks:
+  default:
+    name: ida-network

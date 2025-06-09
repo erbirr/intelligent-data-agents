@@ -1,0 +1,372 @@
+# docker-compose.yml
+# Entorno completo de desarrollo para Intelligent Data Agents (IDA)
+# 
+# Este archivo levanta automáticamente:
+# - Neo4j con datos de ejemplo
+# - PostgreSQL con esquema inicial
+# - Servicio principal IDA
+# - Herramientas de monitoreo y debugging
+#
+# Uso: docker-compose up -d
+
+services:
+  # =============================================================================
+  # NEO4J - Base de datos de grafos
+  # =============================================================================
+  ida-neo4j:
+    image: neo4j:5.15-community
+    hostname: ida-neo4j
+    container_name: ida-neo4j
+    ports:
+      - "7474:7474"   # Browser web de Neo4j
+      - "7687:7687"   # Puerto Bolt para conexiones
+    environment:
+      # Configuración básica
+      NEO4J_AUTH: neo4j/tecnoandina
+      NEO4J_PLUGINS: '["apoc"]'  # Plugin APOC para funciones avanzadas
+      
+      # Configuración de memoria (ajustar según tu sistema)
+      NEO4J_dbms_memory_heap_initial__size: 512m
+      NEO4J_dbms_memory_heap_max__size: 1G
+      NEO4J_dbms_memory_pagecache_size: 512m
+      
+      # Configuración de seguridad para desarrollo
+      NEO4J_dbms_security_procedures_unrestricted: "apoc.*"
+      NEO4J_dbms_security_procedures_allowlist: "apoc.*"
+      
+      # Logs más verbosos para desarrollo
+      NEO4J_dbms_logs_debug_level: INFO
+      
+      NEO4J_dbms_default__database: multiagentes
+      NEO4J_dbms_connector_bolt_listen__address: 0.0.0.0:7687
+      NEO4J_dbms_connector_http_listen__address: 0.0.0.0:7474
+    volumes:
+      - ida_neo4j_data:/data
+      - ida_neo4j_logs:/logs
+      - ida_neo4j_import:/var/lib/neo4j/import
+      - ida_neo4j_plugins:/plugins
+      - ./scripts/db/neo4j:/docker-entrypoint-initdb.d
+      # - ./docker/neo4j/neo4j.config:/var/lib/neo4j/conf/neo4j.conf
+    healthcheck:
+      test: ["CMD", "cypher-shell", "-u", "neo4j", "-p", "tecnoandina", "RETURN 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      ida-network:
+        aliases:
+          - localhost
+    restart: unless-stopped
+
+  # =============================================================================
+  # POSTGRESQL - Base de datos relacional
+  # =============================================================================
+  ida-postgres:
+    image: postgres:15-alpine
+    hostname: ida-postgres
+    container_name: ida-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      # Configuración básica
+      POSTGRES_DB: ${POSTGRES_DB:-multiagentes}
+      POSTGRES_USER: ${POSTGRES_USER:-tecnoandina}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tecnoandina}
+      
+      # Configuración de rendimiento para desarrollo
+      POSTGRES_SHARED_PRELOAD_LIBRARIES: pg_stat_statements
+      POSTGRES_MAX_CONNECTIONS: 100
+      POSTGRES_SHARED_BUFFERS: 256MB
+      POSTGRES_EFFECTIVE_CACHE_SIZE: 1GB
+      POSTGRES_WORK_MEM: 4MB
+      
+      # Configuración de logs
+      POSTGRES_LOG_STATEMENT: all
+      POSTGRES_LOG_MIN_DURATION_STATEMENT: 100  # Log queries > 100ms
+    volumes:
+      - ida_postgres_data:/var/lib/postgresql/data
+      - ./scripts/db/postgres:/docker-entrypoint-initdb.d
+      - ./docker/postgres/postgresql.conf:/etc/postgresql/postgresql.conf
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d multiagentes"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      ida-network:
+        aliases:
+          - localhost
+    restart: unless-stopped
+
+  # =============================================================================
+  # PgAdmin - Interfaz web para PostgreSQL
+  # =============================================================================
+  ida-pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: ida-pgadmin
+    restart: unless-stopped
+    
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@tecnoandina.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
+    
+    volumes:
+      - ida_pgadmin_data:/var/lib/pgadmin
+      - ./docker/pgadmin/servers.json:/pgadmin4/servers.json:ro
+
+    ports:
+      - "${PGADMIN_PORT:-8082}:80"
+    
+    networks:
+      - ida-network
+    
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost/misc/ping || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    
+    depends_on:
+      ida-postgres:
+        condition: service_healthy
+
+  # =============================================================================
+  # SERVICIO IDA - Servicio principal Intelligent Data Agents
+  # =============================================================================
+  ida-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    hostname: ida-service
+    container_name: ida-microservice
+    ports:
+      - "8080:8080"
+    environment:
+      # Conexiones a bases de datos
+      NEO4J_URI: bolt://ida-neo4j:7687
+      NEO4J_DATABASE: multiagentes
+      NEO4J_USER: neo4j
+      NEO4J_PASSWORD: tecnoandina
+      
+      POSTGRES_URL: postgresql://tecnoandina:tecnoandina@ida-postgres:5432/multiagentes
+      POSTGRES_HOST: ida-postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: multiagentes
+      POSTGRES_USER: tecnoandina
+      POSTGRES_PASSWORD: tecnoandina
+      
+      # Configuración del servicio
+      PORT: 8080
+      LOG_LEVEL: INFO
+      
+      # Configuración avanzada
+      MAX_DB_CONNECTIONS: 10
+      DB_TIMEOUT: 30
+      MAX_RETRIES: 3
+      RETRY_DELAY: 1
+      
+      # 🟢 AÑADIDO: Variables de Google Cloud para LLM
+      GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT:-prj-ia-tecnoandina}
+      GOOGLE_CLOUD_LOCATION: ${GOOGLE_CLOUD_LOCATION:-us-central1}
+      LLM_ENABLED: ${LLM_ENABLED:-false}
+      
+      # 🟢 AÑADIDO: Variables adicionales para desarrollo sin LLM
+      FALLBACK_ONLY: ${FALLBACK_ONLY:-true}
+      LLM_CACHE_MAX_SIZE: ${LLM_CACHE_MAX_SIZE:-100}
+    volumes:
+      # Para desarrollo: montar código fuente (descomentar si necesitas hot reload)
+      # - .:/home/app:ro
+      
+      # Logs persistentes
+      - ida_logs:/home/app/logs
+    depends_on:
+      ida-neo4j:
+        condition: service_healthy
+      ida-postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - ida-network
+    restart: unless-stopped
+
+  # =============================================================================
+  # REDIS - Cache opcional para mejorar rendimiento
+  # =============================================================================
+  ida-redis:
+    image: redis:7-alpine
+    hostname: ida-redis
+    container_name: ida-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - ida_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ida-network
+    restart: unless-stopped
+
+  # =============================================================================
+  # PROMETHEUS - Métricas (opcional para desarrollo avanzado)
+  # =============================================================================
+  ida-prometheus:
+    image: prom/prometheus:v2.40.0
+    hostname: ida-prometheus
+    container_name: ida-prometheus
+    ports:
+      - "9090:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ida_prometheus_data:/prometheus
+    networks:
+      - ida-network
+    restart: unless-stopped
+    profiles:
+      - monitoring  # Solo se levanta con: docker-compose --profile monitoring up
+
+  # =============================================================================
+  # GRAFANA - Dashboards (opcional para desarrollo avanzado)
+  # =============================================================================
+  ida-grafana:
+    image: grafana/grafana:9.3.0
+    hostname: ida-grafana
+    container_name: ida-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: false
+    volumes:
+      - ida_grafana_data:/var/lib/grafana
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - ida-prometheus
+    networks:
+      - ida-network
+    restart: unless-stopped
+    profiles:
+      - monitoring  # Solo se levanta con: docker-compose --profile monitoring up
+
+# =============================================================================
+# VOLÚMENES PERSISTENTES
+# =============================================================================
+volumes:
+  # Bases de datos
+  ida_neo4j_data:
+    driver: local
+  ida_neo4j_logs:
+    driver: local
+  ida_neo4j_import:
+    driver: local
+  ida_neo4j_plugins:
+    driver: local
+  ida_postgres_data:
+    driver: local
+  ida_redis_data:
+    driver: local
+  ida_pgadmin_data:
+    driver: local
+  
+  # Aplicación
+  ida_logs:
+    driver: local
+  
+  # Monitoreo
+  ida_prometheus_data:
+    driver: local
+  ida_grafana_data:
+    driver: local
+
+# =============================================================================
+# REDES
+# =============================================================================
+networks:
+  ida-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# =============================================================================
+# CONFIGURACIÓN ADICIONAL Y COMANDOS ÚTILES
+# =============================================================================
+
+# COMANDOS BÁSICOS:
+# 
+# Levantar todo el stack:
+# docker-compose up -d
+#
+# Levantar con monitoreo:
+# docker-compose --profile monitoring up -d
+#
+# Ver logs en tiempo real:
+# docker-compose logs -f ida-service
+#
+# Reiniciar solo el microservicio:
+# docker-compose restart ida-service
+#
+# Conectar a PostgreSQL:
+# docker-compose exec ida-postgres psql -U tecnoandina -d multiagentes
+#
+# Conectar a Neo4j shell:
+# docker-compose exec ida-neo4j cypher-shell -u neo4j -p tecnoandina
+#
+# Parar todo:
+# docker-compose down
+#
+# Parar y eliminar volúmenes (¡CUIDADO! Borra todos los datos):
+# docker-compose down -v
+#
+# URLS ÚTILES:
+# 
+# Servicio IDA:          http://localhost:8080
+# Neo4j Browser:         http://localhost:7474
+# Adminer (PostgreSQL):  http://localhost:8081
+# PgAdmin:               http://localhost:8082
+# Prometheus:            http://localhost:9090
+# Grafana:               http://localhost:3000
+#
+# DATOS DE ACCESO:
+#
+# Neo4j:
+#   URL: bolt://localhost:7687
+#   User: neo4j
+#   Pass: tecnoandina
+#
+# PostgreSQL:
+#   Host: localhost:5432
+#   DB: multiagentes  
+#   User: tecnoandina
+#   Pass: tecnoandina
+#
+# PgAdmin:
+#   URL: http://localhost:8082
+#   User: admin@tecnoandina.com
+#   Pass: admin
+#
+# Grafana:
+#   URL: http://localhost:3000
+#   User: admin
+#   Pass: admin
